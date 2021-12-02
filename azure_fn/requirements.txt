@@ -4,3 +4,4 @@
 
 azure-functions
 sentry-sdk==1.4.3
+requests==2.26.0
