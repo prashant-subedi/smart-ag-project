@@ -23,7 +23,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 #     weather_data = weather_api.fetch()
     logging.info(f'{sensor_data}')
 
-    if sensor_data["telemetry"]["moisture"] < 0.6:
+    if sensor_data["telemetry"]["moisture"] < 51:
             device_command.start_irrigation()
 
     logging.info(f"sensor_data: {sensor_data}")
