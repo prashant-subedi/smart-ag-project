@@ -10,6 +10,7 @@ from sentry_sdk.integrations.serverless import serverless_function
 
 from . import weather_api
 from . import device_command
+from . import database
 
 sentry_dsn = os.getenv("sentry_dsn")
 
@@ -22,10 +23,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     sensor_data = req.get_json()
 #     weather_data = weather_api.fetch()
     logging.info(f'{sensor_data}')
+    
+    database.save_sensor_value(sensor_data)
 
     if sensor_data["telemetry"]["moisture"] < 0.6:
             device_command.start_irrigation()
-
+            
     logging.info(f"sensor_data: {sensor_data}")
     logging.info(f"weather_data: {weather_api.fetch()}")
 
