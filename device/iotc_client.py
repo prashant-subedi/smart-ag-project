@@ -11,7 +11,7 @@ import serial
 from serial.tools import list_ports
 
 load_dotenv()
-dev = next(list_ports.grep("usb")) # Get the first device with USB
+dev = next(list_ports.grep("/dev/cu.usbmodem1101")) # Get the first device with USB
 ser = serial.Serial(dev.device)  
 
 atexit.register(ser.close)
@@ -44,30 +44,22 @@ async def create_client():
 async def on_commands(command: Command):
     if command.name == "startirrigation":
         print("Sending command")
-        await write_serial("led_on\n")
         await command.reply()
 
 async def program_loop():
-    moisture_values = list(i/100 for i in range(50, 90))
-
     client = await create_client()
     client.on(IOTCEvents.IOTC_COMMAND, on_commands)
     while not client.terminated():
         from_serial = await read_serial()
-        print(from_serial)
         try:
-            await client.send_telemetry({
-                "temperature": 1.1,
-                "humidity": 2.2,
-                "sunlight": 2.2,
-                "moisture": moisture_values.pop()
-            })
-            if not moisture_values: # reset it
-                moisture_values = list(i/100 for i in range(50, 90))
-            await asyncio.sleep(1)
-
+            data = json.loads(from_serial)
+            await client.send_telemetry(data)
+            await write_serial(
+                json.dumps(
+                    {'node_id': data['node_id'], 'packet_id': data['packet_id']}
+                ))
         except BaseException as e:
-            print(e)
+            print(from_serial)
 
 async def main():
     await program_loop()
