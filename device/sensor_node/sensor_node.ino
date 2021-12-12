@@ -119,8 +119,6 @@ bool ackRecevied()
         if (rf95.recv(buf, &len)) {
             // Verifying this results in missing ACK :( 
             // So for now, leaving this as it is.
-            SerialUSB.println((char*)buf);
-           
         }
         else {
             return false;

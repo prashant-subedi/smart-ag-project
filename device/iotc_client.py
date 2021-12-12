@@ -44,7 +44,7 @@ async def create_client():
 async def on_commands(command: Command):
     if command.name == "startirrigation":
         print("Sending command")
-        await write_serial(json.dumps({'node_id': 1}))
+        await write_serial(json.dumps({'node_id': 1})+"\n")
         await command.reply()
 
 async def program_loop():
@@ -54,13 +54,14 @@ async def program_loop():
         from_serial = await read_serial()
         try:
             data = json.loads(from_serial)
-            await client.send_telemetry(data)
             await write_serial(
                 json.dumps(
-                    {'node_id': data['node_id'], 'packet_id': data['packet_id']}
-                ))
+                {'node_id': data['node_id'], 'packet_id': data['packet_id']}
+            ))
+
+            await client.send_telemetry(data)
         except BaseException as e:
-            print(from_serial)
+            print(e)
 
 async def main():
     await program_loop()
