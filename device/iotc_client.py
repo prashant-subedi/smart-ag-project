@@ -61,6 +61,8 @@ async def program_loop():
 
             await client.send_telemetry(data)
         except BaseException as e:
+            print(from_serial)
+
             print(e)
 
 async def main():

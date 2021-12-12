@@ -15,7 +15,7 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 
 #define WDT_FLAG 1 << 17 // First bit of the 3rd byte
 
-#define PACKET_SIZE 128
+#define PACKET_SIZE 150
 #define MAX_RETRY 4
 #define WAIT_INTERVALS 300000
 
@@ -60,7 +60,7 @@ StaticJsonDocument<PACKET_SIZE> parsePacket(char* packet)
 }
 
 void sendPacket(int errorCode, float temp, float light,
-    float moisture, float humidity)
+    float moisture, float humidity, bool mockRainPrediction)
 {
     char packet[PACKET_SIZE];
     StaticJsonDocument<PACKET_SIZE> jsonPayload;
@@ -75,6 +75,7 @@ void sendPacket(int errorCode, float temp, float light,
     jsonPayload["light"] = light;
     jsonPayload["moisture"] = moisture;
     jsonPayload["humidity"] = humidity;
+    jsonPayload["mock_rain"] = mockRainPrediction;
 
     createPacket(jsonPayload, packet);
     SerialUSB.println(packet);
@@ -91,6 +92,7 @@ void sendPacket(int errorCode, float temp, float light,
         
         rf95.send((uint8_t*)packet, sizeof(packet));
         rf95.waitPacketSent();
+        SerialUSB.println(packet);
         
         while (ackRetries > 0) {
             if (ackRecevied()) {
@@ -230,10 +232,18 @@ void loop()
 {
     // Keep checking for a time sync signal until it is received
     boolean triggered = false;
+    boolean mockRainPrediction = false;
+    String str;
     if(SerialUSB.available() > 0){
+        str = SerialUSB.readString();
+        SerialUSB.println(str);
+        
+        if (str.startsWith("rain")){
+          mockRainPrediction = true;
+        }
         SerialUSB.println("Manually triggered sending");
         triggered = true;
-        SerialUSB.readString();
+        
     }
     if( gWaitedFor < WAIT_INTERVALS && !triggered){
       gWaitedFor = millis() - gWaitStartedAt;
@@ -242,6 +252,6 @@ void loop()
     gWaitStartedAt = millis();
     gWaitedFor = 0;
     SensorValues s = getSensorData();
-    sendPacket(0, s.temp, s.light, s.moisture, s.humidity);
+    sendPacket(0, s.temp, s.light, s.moisture, s.humidity, mockRainPrediction);
     WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
 }
