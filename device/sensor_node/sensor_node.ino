@@ -17,7 +17,8 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 
 #define PACKET_SIZE 128
 #define MAX_RETRY 4
-#define WAIT_FOR_ACK 10000
+#define WAIT_INTERVALS 300000
+
 // We need to provide the RFM95 module's chip select and interrupt pins to the
 // rf95 instance below.On the SparkFun ProRF those pins are 12 and 6 respectively.
 RH_RF95 rf95(12, 6);
@@ -42,6 +43,9 @@ struct SensorValues {
     float moisture;
 };
 
+int gWaitedFor= 50000; // Large Value so transmission can begin first
+int gWaitStartedAt = 0;
+
 /* Functions for Communication Start*/
 void createPacket(StaticJsonDocument<PACKET_SIZE> jsonPayload, char* packet)
 {
@@ -60,7 +64,6 @@ void sendPacket(int errorCode, float temp, float light,
 {
     char packet[PACKET_SIZE];
     StaticJsonDocument<PACKET_SIZE> jsonPayload;
-    int waitingStartedAt;
     int retryCount = 0;
     int randomWait;
     int ackRetries;
@@ -108,13 +111,16 @@ void sendPacket(int errorCode, float temp, float light,
 
 bool ackRecevied()
 {
+     StaticJsonDocument<PACKET_SIZE> receivedJson;
+     DeserializationError error;
     if (rf95.available()) {
         uint8_t buf[PACKET_SIZE];
         uint8_t len = PACKET_SIZE;
         if (rf95.recv(buf, &len)) {
-            // Parse and Check ACK
+            // Verifying this results in missing ACK :( 
+            // So for now, leaving this as it is.
             SerialUSB.println((char*)buf);
-            return true;
+           
         }
         else {
             return false;
@@ -225,14 +231,19 @@ void setup()
 void loop()
 {
     // Keep checking for a time sync signal until it is received
+    boolean triggered = false;
+    if(SerialUSB.available() > 0){
+        SerialUSB.println("Manually triggered sending");
+        triggered = true;
+        SerialUSB.readString();
+    }
+    if( gWaitedFor < WAIT_INTERVALS && !triggered){
+      gWaitedFor = millis() - gWaitStartedAt;
+      return;
+    }
+    gWaitStartedAt = millis();
+    gWaitedFor = 0;
     SensorValues s = getSensorData();
-    delay(1000);
     sendPacket(0, s.temp, s.light, s.moisture, s.humidity);
     WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
-
-    /*if(!timeSynced){
-     WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
-     timeSynced = syncTimeWithLeader();
-     return;
-  }*/
 }

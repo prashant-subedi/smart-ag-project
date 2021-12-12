@@ -44,6 +44,7 @@ async def create_client():
 async def on_commands(command: Command):
     if command.name == "startirrigation":
         print("Sending command")
+        await write_serial(json.dumps({'node_id': 1}))
         await command.reply()
 
 async def program_loop():
