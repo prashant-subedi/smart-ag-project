@@ -12,7 +12,8 @@ from serial.tools import list_ports
 
 load_dotenv()
 dev = next(list_ports.grep("/dev/cu.usbmodem1101")) # Get the first device with USB
-ser = serial.Serial(dev.device)  
+ser = serial.Serial(dev.device)
+
 
 atexit.register(ser.close)
 last_of_node = {}
@@ -58,7 +59,7 @@ async def program_loop():
                 json.dumps(
                 {'node_id': data['node_id'], 'packet_id': data['packet_id']}
             ))
-            if last_of_node.get(data['node_id']) == data['packet_id']:
+            if last_of_node.get(data['packet_id']) == data['packet_id']:
                 # Dedupe incase of retransmission
                 print("DUPLICATE")
                 
