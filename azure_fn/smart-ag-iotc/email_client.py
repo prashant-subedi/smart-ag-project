@@ -6,13 +6,12 @@ import os
 
 EMAIL_SENDER_ACCOUNT = "hafiz.oyediran@gmail.com"
 EMAIL_SENDER_USERNAME = "hafiz.oyediran@gmail.com"
-EMAIL_SENDER_PASSWORD = os.getenv("EMAIL_PASSOWRD")
+EMAIL_SENDER_PASSWORD = os.getenv("email_password")
 EMAIL_SMTP_SERVER = "smtp.gmail.com"
 EMAIL_SMTP_PORT = 587
 
 def setup_server():
     #Email account settings
-
     # start connection and login
     server = smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT)
     server.starttls()
@@ -34,11 +33,11 @@ def send_email(email_subject, email_receivers, email_body):
     #All emails sent, log out.
     server.quit()
 
-if __name__=='__main__':
-
-    #Email Content
+def notify_irrigation_started():
     email_receivers = ["oyediran.hafiz@gmail.com, psubedi3@huskers.unl.edu"] #enter the list of recepient emails
     email_subject = "Smart IoT Notification"
     email_body = """testing testing testing"""
-
     send_email(email_subject, email_receivers, email_body)
+
+if __name__=='__main__':
+    notify_irrigation_started()

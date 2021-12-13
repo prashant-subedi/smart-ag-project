@@ -15,7 +15,7 @@ dev = next(list_ports.grep("/dev/cu.usbmodem1101")) # Get the first device with 
 ser = serial.Serial(dev.device)  
 
 atexit.register(ser.close)
-
+last_of_node = {}
 
 async def read_serial():
     loop = asyncio.get_running_loop()
@@ -53,13 +53,18 @@ async def program_loop():
     while not client.terminated():
         from_serial = await read_serial()
         try:
-            data = json.loads(from_serial)
+            data = json.loads(from_serial)            
             await write_serial(
                 json.dumps(
                 {'node_id': data['node_id'], 'packet_id': data['packet_id']}
             ))
-
+            if last_of_node.get(data['node_id']) == data['packet_id']:
+                # Dedupe incase of retransmission
+                print("DUPLICATE")
+                
+                continue
             await client.send_telemetry(data)
+            last_of_node.get(data['node_id']) == data['packet_id']
         except BaseException as e:
             print(from_serial)
 
