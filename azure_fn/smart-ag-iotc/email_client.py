@@ -34,7 +34,10 @@ def send_email(email_subject, email_receivers, email_body):
     server.quit()
 
 def notify_irrigation_started():
-    email_receivers = ["oyediran.hafiz@gmail.com, prashantsubedi92@gmail.com"] #enter the list of recepient emails
+    email_receivers = [
+        "smart_agriculture@mailinator.com",
+        "oyediran.hafiz@gmail.com", 
+     ]
     email_subject = "Smart IoT Notification"
     email_body = """testing testing testing"""
     send_email(email_subject, email_receivers, email_body)
