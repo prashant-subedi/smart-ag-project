@@ -26,8 +26,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     database.save_sensor_value(sensor_data)
     predicted_sm = model.predict_SM(sensor_data) 
-    if predicted_sm < 37.5:
-        logging.info(f"START IRRIGATION " + str(predicted_sm))
+    if predicted_sm < 74:
+        logging.info(f"START IRRIGATION VALUE: {predicted_sm}")
         device_command.start_irrigation()
         try:
             email_client.notify_irrigation_started()
