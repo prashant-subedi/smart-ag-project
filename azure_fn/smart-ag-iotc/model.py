@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error
 from sklearn.svm import SVR
 import pickle
