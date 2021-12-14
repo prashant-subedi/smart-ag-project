@@ -5,3 +5,7 @@
 azure-functions
 sentry-sdk==1.4.3
 requests==2.26.0
+psycopg2-binary==2.9.2
+scikit-learn
+numpy
+pandas
