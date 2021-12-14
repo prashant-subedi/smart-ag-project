@@ -3,9 +3,11 @@
 #include <RH_RF95.h>
 #include <ArduinoJson.h>
 
-#define PACKET_SIZE 128
+#define PACKET_SIZE 240
 #define FREQUENCY 915
 #define LEADER_NODE 1
+
+#define LED 4
 
 RH_RF95 rf95(12, 6);
 
@@ -23,9 +25,9 @@ bool receivePacket(){
           SerialUSB.println("Received JSON data");
           if((int)doc["node_id"]==LEADER_NODE){
             SerialUSB.println("it's from leader!!!!!");
+            return true;
           }
           SerialUSB.println((int)doc["node_id"]);
-          return true;
         }
       }else{
         SerialUSB.println("Recieve failed");
@@ -53,19 +55,19 @@ void setupLora(){
 
 void setup() {
     SerialUSB.begin(9600);
-    while(!SerialUSB);
     setupLora();
+    pinMode(LED, OUTPUT);
 }
 
 int ledTurnedOnAt;
 void turnOnLed(){
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED, HIGH);
   ledTurnedOnAt = millis();
   
 }
 void turnOffLedIfTimeComplete(int timeLimit){
     if(millis() - ledTurnedOnAt > timeLimit){
-      digitalWrite(LED_BUILTIN, LOW);
+      digitalWrite(LED, LOW);
     }
 }
 

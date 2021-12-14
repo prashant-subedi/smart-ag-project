@@ -112,6 +112,7 @@ void sendPacket(int errorCode, float temp, float light,
   }
 
 bool ackRecevied()
+
 {
      StaticJsonDocument<PACKET_SIZE> receivedJson;
      DeserializationError error;
@@ -168,8 +169,8 @@ void setupWDT()
     NVIC_EnableIRQ(WDT_IRQn);
 
     WDT->INTENSET.bit.EW = 1; // Enable early warning interrupt
-    WDT->EWCTRL.bit.EWOFFSET = 0x8; // Early Warning Interrupt Time Offset
-    WDT->CONFIG.bit.PER = 0x9; // Set period for chip reset
+    WDT->EWCTRL.bit.EWOFFSET = 0xA; // Early Warning Interrupt Time Offset
+    WDT->CONFIG.bit.PER = 0xB; // Set period for chip reset
     WDT->CTRL.bit.WEN = 0; // Disable window mode
     while (WDT->STATUS.bit.SYNCBUSY)
         ; // Sync CTRL write
@@ -191,6 +192,8 @@ void WDT_Handler(void)
 { // ISR for watchdog early warning, DO NOT RENAME!
     SerialUSB.println("WDT_Handler");
     WDT->CLEAR.reg = 0xFF;
+    sendPacket(WDT_FLAG, 0, 0, 0, 0, false);
+
 }
 
 // Joshua Dotto
@@ -203,8 +206,10 @@ SensorValues getSensorData()
     SensorValues sensorValue;
 
     dht.temperature().getEvent(&eventTemp);
+    SerialUSB.println(eventTemp.temperature);
 
     dht.humidity().getEvent(&eventHumid);
+    SerialUSB.println(eventHumid.relative_humidity);
 
     sensorValue.temp = eventTemp.temperature;
 
@@ -225,7 +230,7 @@ void setup()
     SerialUSB.println("Transmitter up!");
     dht.begin();
     setupLora();
-//    setupWDT();
+    setupWDT();
 }
 
 void loop()
@@ -247,11 +252,12 @@ void loop()
     }
     if( gWaitedFor < WAIT_INTERVALS && !triggered){
       gWaitedFor = millis() - gWaitStartedAt;
-      return;
     }
-    gWaitStartedAt = millis();
-    gWaitedFor = 0;
-    SensorValues s = getSensorData();
-    sendPacket(0, s.temp, s.light, s.moisture, s.humidity, mockRainPrediction);
+    else{
+      gWaitStartedAt = millis();
+      gWaitedFor = 0;
+      SensorValues s = getSensorData();
+      sendPacket(0, s.temp, s.light, s.moisture, s.humidity, mockRainPrediction);
+    }
     WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
 }
