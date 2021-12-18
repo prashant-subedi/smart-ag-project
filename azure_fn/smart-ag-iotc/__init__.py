@@ -1,9 +1,11 @@
+"""
+Entry file for Azure Function
+"""
 import logging
 import os
 import json
 
 import azure.functions as func
-# Sentry for error loggning
 import sentry_sdk
 from sentry_sdk.integrations.serverless import serverless_function
 
@@ -17,6 +19,10 @@ sentry_sdk.init(dsn=sentry_dsn)
 
 @serverless_function
 def main(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Entry function that is called whenever the Azure function is invoked.
+    Note: Fetching from weather is removed
+    """
     logging.info('Python HTTP trigger function processed a request.')
     
     sensor_data = req.get_json()

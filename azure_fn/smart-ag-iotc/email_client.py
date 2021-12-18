@@ -1,7 +1,9 @@
+"""
+Utility to send email
+"""
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import datetime
 import os
 
 EMAIL_SENDER_ACCOUNT = "hafiz.oyediran@gmail.com"
@@ -11,15 +13,20 @@ EMAIL_SMTP_SERVER = "smtp.gmail.com"
 EMAIL_SMTP_PORT = 587
 
 def setup_server():
+<<<<<<< Updated upstream
     #Email account settings
 
     # start connection and login
+=======
+    """Setup/Authenticate SMTP server"""
+>>>>>>> Stashed changes
     server = smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT)
     server.starttls()
     server.login(EMAIL_SENDER_USERNAME, EMAIL_SENDER_PASSWORD)
     return server
 
 def send_email(email_subject, email_receivers, email_body):
+    """Send using SMTP protocol"""
     server = setup_server()
     #For loop, sending emails to all email recipients
     for recipient in email_receivers:

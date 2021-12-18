@@ -1,6 +1,10 @@
+"""
+Implements AZ IOT Central commands that can be sent to the devices
+"""
 import requests
+import os
 
-auth_api_token="SharedAccessSignature sr=1f016e66-2f17-406d-a41f-7cd139896bbb&sig=XEeBhxMfKQk4rRZGWD2MU314HSH9kfD0MilP3LScJKA%3D&skn=az-fn&se=1670003104703"
+auth_api_token=os.getenv("AUTH_API_TOKEN")
 
 def _command_url(command_name):
     return f"https://smart-agriculture.azureiotcentral.com/api/devices/2ot2wjgghpi/commands/startirrigation?api-version=1.0" 

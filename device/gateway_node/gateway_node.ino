@@ -1,3 +1,8 @@
+/*
+  Code for gateway upload into SAMD21. The SAMD21 is connected via USB to a PI
+  The SAMD21 just listens for data from SerialUSB and transmits it
+  and listens to LoRA messages and puts it into SerialUSB
+*/
 #include <SPI.h>
  //Radio Head Library:
 #include <RH_RF95.h>
@@ -5,10 +10,12 @@
 #define PACKET_SIZE 128
 #define FREQUENCY 915
 
-
+// We need to provide the RFM95 module's chip select and interrupt pins to the
+// rf95 instance below.On the SparkFun ProRF those pins are 12 and 6 respectively.
 RH_RF95 rf95(12, 6);
 
-void receivePacket(){    
+void receivePacket(){
+  // Any packet received from LoRA is dumped into SerialUSB
   if (rf95.available()){
     uint8_t buf[PACKET_SIZE];
     uint8_t len = PACKET_SIZE;

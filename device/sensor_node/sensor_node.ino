@@ -1,11 +1,17 @@
+/*
+Code to run on SAMD21 that is connected to sensor. 
+Transmits readings from LDR, DHT22 and moisture sensor every 5 minutes
+*/
+
 // DTH Sensor dependencies
 #include <SPI.h>
 #include <DHT.h>
 #include <DHT_U.h>
 
-//Radio Head Library:
+//Radio Head Library for communication
 #include <RH_RF95.h>
 
+// For using JSON packets
 #include <ArduinoJson.h>
 
 // Initialize DHT Sensor
@@ -31,9 +37,7 @@ int gNextPacketId = 0; // Counts the number of packets sent
 float gFrequency = 915; // Broadcast frequency
 int gPacketSize = 128;
 
-// raw sensor values struct
 int gMoistPin = A0;
-const float randomMoisture = 0.6;
 int gLightPin = A1;
 
 struct SensorValues {
@@ -47,21 +51,25 @@ int gWaitedFor= 50000; // Large Value so transmission can begin first
 int gWaitStartedAt = 0;
 
 /* Functions for Communication Start*/
-void createPacket(StaticJsonDocument<PACKET_SIZE> jsonPayload, char* packet)
-{
+void createPacket(StaticJsonDocument<PACKET_SIZE> jsonPayload, char* packet){
     serializeJson(jsonPayload, packet, PACKET_SIZE);
 }
 
-StaticJsonDocument<PACKET_SIZE> parsePacket(char* packet)
-{
+StaticJsonDocument<PACKET_SIZE> parsePacket(char* packet){
     StaticJsonDocument<PACKET_SIZE> jsonPayload;
     deserializeJson(jsonPayload, packet);
     return jsonPayload;
 }
 
-void sendPacket(int errorCode, float temp, float light,
-    float moisture, float humidity, bool mockRainPrediction)
-{
+void sendPacket(
+    int errorCode, 
+    float temp, 
+    float light,
+    float moisture,
+    float humidity,
+    bool mockRainPrediction
+){
+
     char packet[PACKET_SIZE];
     StaticJsonDocument<PACKET_SIZE> jsonPayload;
     int retryCount = 0;
@@ -111,8 +119,12 @@ void sendPacket(int errorCode, float temp, float light,
     SerialUSB.println("Transmission Failed");
   }
 
+<<<<<<< Updated upstream
 bool ackRecevied()
 {
+=======
+bool ackRecevied(){
+>>>>>>> Stashed changes
      StaticJsonDocument<PACKET_SIZE> receivedJson;
      DeserializationError error;
     if (rf95.available()) {
