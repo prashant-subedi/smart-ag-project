@@ -1,6 +1,6 @@
 """
-    Script that runs on the Rasperry PI to make it act as a gateway. 
-    It maintains a connection with IOT Central using the iotc library and a connection with SAMD21 with serial
+Script that runs on the Rasperry PI to make it act as a gateway. 
+It maintains a connection with IOT Central using the iotc library and a connection with SAMD21 with serial
 """
 import os
 import json
@@ -15,18 +15,14 @@ import serial
 from serial.tools import list_ports
 
 load_dotenv()
-<<<<<<< Updated upstream
-dev = next(list_ports.grep("/dev/cu.usbmodem1101")) # Get the first device with USB
-ser = serial.Serial(dev.device)  
-=======
 
 dev = next(list_ports.grep("/dev/cu.usbmodem1101")) # for mac, change for PI
 ser = serial.Serial(dev.device)
 
->>>>>>> Stashed changes
 
 atexit.register(ser.close)
 
+last_of_node = {}
 
 async def read_serial():
     loop = asyncio.get_running_loop()
@@ -74,17 +70,12 @@ async def program_loop():
                 json.dumps(
                 {'node_id': data['node_id'], 'packet_id': data['packet_id']}
             ))
-<<<<<<< Updated upstream
-
-            await client.send_telemetry(data)
-=======
             if last_of_node.get(data['packet_id']) == data['packet_id']:
                 # Dedupe incase of retransmission
                 print("DUPLICATE")
                 continue
             await client.send_telemetry(data)
             last_of_node[data['node_id']] = data['packet_id']
->>>>>>> Stashed changes
         except BaseException as e:
             print(from_serial)
             print(e)

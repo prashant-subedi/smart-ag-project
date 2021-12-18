@@ -10,8 +10,10 @@ import sentry_sdk
 from sentry_sdk.integrations.serverless import serverless_function
 
 
-from . import weather_api
 from . import device_command
+from . import database
+from . import email_client
+from . import model
 
 sentry_dsn = os.getenv("sentry_dsn")
 
@@ -25,15 +27,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     """
     logging.info('Python HTTP trigger function processed a request.')
     
-    sensor_data = req.get_json()
-#     weather_data = weather_api.fetch()
+    sensor_data = req.get_json()["telemetry"]
     logging.info(f'{sensor_data}')
-
-    if sensor_data["telemetry"]["moisture"] < 51:
-            device_command.start_irrigation()
-
+    
+    database.save_sensor_value(sensor_data)
+    predicted_sm = model.predict_SM(sensor_data) 
+    if predicted_sm < 74:
+        logging.info(f"START IRRIGATION VALUE: {predicted_sm}")
+        device_command.start_irrigation()
+        try:
+            email_client.notify_irrigation_started()
+        except BaseException:
+            logging.exception("Failed to send email")
+    else:
+        logging.info(f"NO IRRIGATION")
+        
+        
     logging.info(f"sensor_data: {sensor_data}")
-    logging.info(f"weather_data: {weather_api.fetch()}")
 
     return func.HttpResponse(
             json.dumps(sensor_data),

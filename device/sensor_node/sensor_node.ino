@@ -5,7 +5,9 @@ Transmits readings from LDR, DHT22 and moisture sensor every 5 minutes
 
 // DTH Sensor dependencies
 #include <SPI.h>
+
 #include <DHT.h>
+
 #include <DHT_U.h>
 
 //Radio Head Library for communication
@@ -41,229 +43,225 @@ int gMoistPin = A0;
 int gLightPin = A1;
 
 struct SensorValues {
-    float temp;
-    float humidity;
-    float light;
-    float moisture;
+  float temp;
+  float humidity;
+  float light;
+  float moisture;
 };
 
-int gWaitedFor= 50000; // Large Value so transmission can begin first
+int gWaitedFor = 50000; // Large Value so transmission can begin first
 int gWaitStartedAt = 0;
 
-/* Functions for Communication Start*/
-void createPacket(StaticJsonDocument<PACKET_SIZE> jsonPayload, char* packet){
-    serializeJson(jsonPayload, packet, PACKET_SIZE);
+void createPacket(StaticJsonDocument < PACKET_SIZE > jsonPayload, char * packet) {
+  // Get json string from the JSON object
+  serializeJson(jsonPayload, packet, PACKET_SIZE);
 }
 
-StaticJsonDocument<PACKET_SIZE> parsePacket(char* packet){
-    StaticJsonDocument<PACKET_SIZE> jsonPayload;
-    deserializeJson(jsonPayload, packet);
-    return jsonPayload;
+StaticJsonDocument < PACKET_SIZE > parsePacket(char * packet) {
+  // Parse JSON string to get JSON object
+  StaticJsonDocument < PACKET_SIZE > jsonPayload;
+  deserializeJson(jsonPayload, packet);
+  return jsonPayload;
 }
 
 void sendPacket(
-    int errorCode, 
-    float temp, 
-    float light,
-    float moisture,
-    float humidity,
-    bool mockRainPrediction
-){
+  int errorCode,
+  float temp,
+  float light,
+  float moisture,
+  float humidity,
+  bool mockRainPrediction
+) {
+  // Transmit the data and send it using RADIO Head library  
+  // mockRainPrediction is added for the demo for mocking a future rain forcast in cloud
+  char packet[PACKET_SIZE];
+  StaticJsonDocument < PACKET_SIZE > jsonPayload;
+  int retryCount = 0;
+  int randomWait;
+  int ackRetries;
 
-    char packet[PACKET_SIZE];
-    StaticJsonDocument<PACKET_SIZE> jsonPayload;
-    int retryCount = 0;
-    int randomWait;
-    int ackRetries;
+  jsonPayload["node_id"] = gNodeId;
+  jsonPayload["packet_id"] = gNextPacketId++;
+  jsonPayload["error_code"] = errorCode;
+  jsonPayload["temp"] = temp;
+  jsonPayload["light"] = light;
+  jsonPayload["moisture"] = moisture;
+  jsonPayload["humidity"] = humidity;
+  jsonPayload["mock_rain"] = mockRainPrediction;
 
-    jsonPayload["node_id"] = gNodeId;
-    jsonPayload["packet_id"] = gNextPacketId++;
-    jsonPayload["error_code"] = errorCode;
-    jsonPayload["temp"] = temp;
-    jsonPayload["light"] = light;
-    jsonPayload["moisture"] = moisture;
-    jsonPayload["humidity"] = humidity;
-    jsonPayload["mock_rain"] = mockRainPrediction;
+  createPacket(jsonPayload, packet);
+  SerialUSB.println(packet);
 
-    createPacket(jsonPayload, packet);
+  while (1) {
+    // The delay is there before 1st send to solve some wierd issues that we got
+    // The ack was never received
+    randomWait = rand() % 1000;
+    SerialUSB.print("Waiting for: ");
+    SerialUSB.println(randomWait);
+
+    ackRetries = 10000;
+    delay(randomWait);
+
+    rf95.send((uint8_t * ) packet, sizeof(packet));
+    rf95.waitPacketSent();
     SerialUSB.println(packet);
 
-    while (1) {
-        // The delay is there before 1st send to sovlve some wierd issues
-        // The ack was never received
-        randomWait = rand() % 1000;
-        SerialUSB.print("Waiting for: ");
-        SerialUSB.println(randomWait);
-
-        ackRetries = 10000;
-        delay(randomWait);
-        
-        rf95.send((uint8_t*)packet, sizeof(packet));
-        rf95.waitPacketSent();
-        SerialUSB.println(packet);
-        
-        while (ackRetries > 0) {
-            if (ackRecevied()) {
-                SerialUSB.println("ACK REVEIVED!!!");
-                return;
-            }
-            ackRetries-=1;
-        }
-        SerialUSB.println("ACK NOT RECEIVED");
-        retryCount+=1;      
-        if(retryCount > MAX_RETRY){ 
-          SerialUSB.println("Stopping retransmission");
-          break;
-        }
+    while (ackRetries > 0) {
+      if (ackRecevied()) {
+        SerialUSB.println("ACK REVEIVED!!!");
+        return;
+      }
+      ackRetries -= 1;
     }
-    SerialUSB.println("Transmission Failed");
+    SerialUSB.println("ACK NOT RECEIVED");
+    retryCount += 1;
+    if (retryCount > MAX_RETRY) {
+      SerialUSB.println("Stopping retransmission");
+      break;
+    }
   }
-
-<<<<<<< Updated upstream
-bool ackRecevied()
-{
-=======
-bool ackRecevied(){
->>>>>>> Stashed changes
-     StaticJsonDocument<PACKET_SIZE> receivedJson;
-     DeserializationError error;
-    if (rf95.available()) {
-        uint8_t buf[PACKET_SIZE];
-        uint8_t len = PACKET_SIZE;
-        if (rf95.recv(buf, &len)) {
-            // Verifying this results in missing ACK :( 
-            // So for now, leaving this as it is.
-        }
-        else {
-            return false;
-        }
-    }
+  SerialUSB.println("Transmission Failed");
 }
 
-void setupLora()
-{
-    if (rf95.init() == false) {
-        SerialUSB.println("Radio Init Failed - Freezing");
-        while (1)
-            ;
+bool ackRecevied() {
+ // Checks if ack was received. Ideally it should parse the packet as JSON and verify the payload
+ // But adding that made the receiver miss when ack was recevied.
+  StaticJsonDocument < PACKET_SIZE > receivedJson;
+  DeserializationError error;
+  if (rf95.available()) {
+    uint8_t buf[PACKET_SIZE];
+    uint8_t len = PACKET_SIZE;
+    if (rf95.recv(buf, & len)) {
+      // Verifying this results in missing ACK :( 
+      // So for now, leaving this as it is.
+    } else {
+      return false;
     }
-    else {
-        //An LED inidicator to let us know radio initialization has completed.
-        digitalWrite(gLed, HIGH);
-        delay(500);
-        digitalWrite(gLed, LOW);
-    }
-    // Set frequency
-    rf95.setFrequency(gFrequency);
-    // Transmitter power can range from 14-20dbm.
-    rf95.setTxPower(20, false);
+  }
+}
+
+void setupLora() {
+  if (rf95.init() == false) {
+    SerialUSB.println("Radio Init Failed - Freezing");
+    while (1)
+    ;
+  } else {
+    //An LED inidicator to let us know radio initialization has completed.
+    digitalWrite(gLed, HIGH);
+    delay(500);
+    digitalWrite(gLed, LOW);
+  }
+  // Set frequency
+  rf95.setFrequency(gFrequency);
+  // Transmitter power can range from 14-20dbm.
+  rf95.setTxPower(20, false);
 }
 
 /* Function for Error code start*/
 
-void setupWDT()
-{
-    // Generic clock generator 2, divisor = 32 (2^(DIV+1))
-    GCLK->GENDIV.reg = GCLK_GENDIV_ID(2) | GCLK_GENDIV_DIV(4);
-    // Enable clock generator 2 using low-power 32KHz oscillator.
-    // With /32 divisor above, this yields 1024Hz(ish) clock.
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL;
-    while (GCLK->STATUS.bit.SYNCBUSY)
-        ;
-    // WDT clock = clock gen 2
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID_WDT | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2;
+void setupWDT() {
+  // Generic clock generator 2, divisor = 32 (2^(DIV+1))
+  GCLK -> GENDIV.reg = GCLK_GENDIV_ID(2) | GCLK_GENDIV_DIV(4);
+  // Enable clock generator 2 using low-power 32KHz oscillator.
+  // With /32 divisor above, this yields 1024Hz(ish) clock.
+  GCLK -> GENCTRL.reg = GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL;
+  while (GCLK -> STATUS.bit.SYNCBUSY)
+  ;
+  // WDT clock = clock gen 2
+  GCLK -> CLKCTRL.reg = GCLK_CLKCTRL_ID_WDT | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2;
 
-    // Enable WDT early-warning interrupt
-    NVIC_DisableIRQ(WDT_IRQn);
-    NVIC_ClearPendingIRQ(WDT_IRQn);
-    NVIC_SetPriority(WDT_IRQn, 0);
-    NVIC_EnableIRQ(WDT_IRQn);
+  // Enable WDT early-warning interrupt
+  NVIC_DisableIRQ(WDT_IRQn);
+  NVIC_ClearPendingIRQ(WDT_IRQn);
+  NVIC_SetPriority(WDT_IRQn, 0);
+  NVIC_EnableIRQ(WDT_IRQn);
 
-    WDT->INTENSET.bit.EW = 1; // Enable early warning interrupt
-    WDT->EWCTRL.bit.EWOFFSET = 0x8; // Early Warning Interrupt Time Offset
-    WDT->CONFIG.bit.PER = 0x9; // Set period for chip reset
-    WDT->CTRL.bit.WEN = 0; // Disable window mode
-    while (WDT->STATUS.bit.SYNCBUSY)
-        ; // Sync CTRL write
-    WDT->CTRL.bit.ENABLE = 1; // Start watchdog now!
-    while (WDT->STATUS.bit.SYNCBUSY)
-        ;
+  WDT -> INTENSET.bit.EW = 1; // Enable early warning interrupt
+  WDT -> EWCTRL.bit.EWOFFSET = 0xA; // Early Warning Interrupt Time Offset
+  WDT -> CONFIG.bit.PER = 0xB; // Set period for chip reset
+  WDT -> CTRL.bit.WEN = 0; // Disable window mode
+  while (WDT -> STATUS.bit.SYNCBUSY)
+  ; // Sync CTRL write
+  WDT -> CTRL.bit.ENABLE = 1; // Start watchdog now!
+  while (WDT -> STATUS.bit.SYNCBUSY)
+  ;
 }
 
-int getErrorCode(bool wdt_interrupt)
-{
-    int errorCode = REG_DSU_STATUSA | REG_DSU_STATUSB << 8;
-    if (wdt_interrupt) {
-        errorCode = errorCode | WDT_FLAG;
-    }
-    return errorCode;
+int getErrorCode(bool wdt_interrupt) {
+    // Extract error codes from DSU resitors
+  int errorCode = REG_DSU_STATUSA | REG_DSU_STATUSB << 8;
+  if (wdt_interrupt) {
+    errorCode = errorCode | WDT_FLAG;
+  }
+  return errorCode;
 }
 
-void WDT_Handler(void)
-{ // ISR for watchdog early warning, DO NOT RENAME!
-    SerialUSB.println("WDT_Handler");
-    WDT->CLEAR.reg = 0xFF;
+void WDT_Handler(void) { // ISR for watchdog early warning, DO NOT RENAME!
+  SerialUSB.println("WDT_Handler");
+  WDT -> CLEAR.reg = 0xFF;
+  sendPacket(WDT_FLAG, 0, 0, 0, 0, false);
+
 }
 
 // Joshua Dotto
-SensorValues getSensorData()
-{
-    sensors_event_t eventTemp;
+SensorValues getSensorData() {
+  // Collects values from pins sensors are connected to and calibrates them  
+  sensors_event_t eventTemp;
 
-    sensors_event_t eventHumid;
+  sensors_event_t eventHumid;
 
-    SensorValues sensorValue;
+  SensorValues sensorValue;
 
-    dht.temperature().getEvent(&eventTemp);
+  dht.temperature().getEvent( & eventTemp);
+  SerialUSB.println(eventTemp.temperature);
 
-    dht.humidity().getEvent(&eventHumid);
+  dht.humidity().getEvent( & eventHumid);
+  SerialUSB.println(eventHumid.relative_humidity);
 
-    sensorValue.temp = eventTemp.temperature;
+  sensorValue.temp = eventTemp.temperature;
 
-    sensorValue.humidity = eventHumid.relative_humidity;
+  sensorValue.humidity = eventHumid.relative_humidity;
 
-    sensorValue.light = (100.0 / 1023) * (analogRead(gLightPin));
+  sensorValue.light = (100.0 / 1023) * (analogRead(gLightPin));
 
-    sensorValue.moisture = 0.1011 * (analogRead(gMoistPin)) - 1.1374;
-    return sensorValue;
+  sensorValue.moisture = 0.1011 * (analogRead(gMoistPin)) - 1.1374;
+  return sensorValue;
 }
 
 /* 1s interrupt handler*/
-void setup()
-{
-    pinMode(gLed, OUTPUT);
-    SerialUSB.begin(9600);
-    SerialUSB.println("RFM Client!");
-    SerialUSB.println("Transmitter up!");
-    dht.begin();
-    setupLora();
-//    setupWDT();
+void setup() {
+  pinMode(gLed, OUTPUT);
+  SerialUSB.begin(9600);
+  SerialUSB.println("RFM Client!");
+  SerialUSB.println("Transmitter up!");
+  dht.begin();
+  setupLora();
+  setupWDT();
 }
 
-void loop()
-{
-    // Keep checking for a time sync signal until it is received
-    boolean triggered = false;
-    boolean mockRainPrediction = false;
-    String str;
-    if(SerialUSB.available() > 0){
-        str = SerialUSB.readString();
-        SerialUSB.println(str);
-        
-        if (str.startsWith("rain")){
-          mockRainPrediction = true;
-        }
-        SerialUSB.println("Manually triggered sending");
-        triggered = true;
-        
+void loop() {
+  // Keep checking for a time sync signal until it is received
+  boolean triggered = false;
+  boolean mockRainPrediction = false;
+  String str;
+  if (SerialUSB.available() > 0) {
+    str = SerialUSB.readString();
+    SerialUSB.println(str);
+
+    if (str.startsWith("rain")) {
+      mockRainPrediction = true;
     }
-    if( gWaitedFor < WAIT_INTERVALS && !triggered){
-      gWaitedFor = millis() - gWaitStartedAt;
-      return;
-    }
+    SerialUSB.println("Manually triggered sending");
+    triggered = true;
+
+  }
+  if (gWaitedFor < WAIT_INTERVALS && !triggered) {
+    gWaitedFor = millis() - gWaitStartedAt;
+  } else {
     gWaitStartedAt = millis();
     gWaitedFor = 0;
     SensorValues s = getSensorData();
     sendPacket(0, s.temp, s.light, s.moisture, s.humidity, mockRainPrediction);
-    WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
+  }
+  WDT -> CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
 }
